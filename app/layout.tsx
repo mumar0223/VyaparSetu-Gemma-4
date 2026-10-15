@@ -44,7 +44,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <LanguageProvider>
-            {children}
+            <AppMobileShell>{children}</AppMobileShell>
           </LanguageProvider>
           <Toaster position="bottom-right" />
         </ThemeProvider>

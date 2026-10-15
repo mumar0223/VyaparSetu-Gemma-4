@@ -341,7 +341,7 @@ export function HistorySidebar({
       {/* ── Desktop Inline Collapsible History Sidebar (>= 1024px, Left-Docked) ── */}
       <aside
         className={cn(
-          "hidden lg:flex shrink-0 flex-col border-r border-sage/20 dark:border-border bg-white/45 dark:bg-card/45 backdrop-blur-md h-full select-none overflow-hidden font-sans z-20",
+          "hidden lg:flex shrink-0 flex-col border-r border-sage/20 dark:border-border bg-white/35 dark:bg-card/35 h-full select-none overflow-hidden font-sans z-20",
           mounted && "transition-[width] duration-300 ease-in-out",
           isOpen ? "w-[260px]" : "w-0 border-r-0",
         )}
