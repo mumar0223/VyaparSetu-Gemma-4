@@ -61,6 +61,7 @@ export const ALL_INDIAN_STATES_DATA: StateData[] = [
       { name: "Ayodhya", lat: 26.7922, lng: 82.1998, odop: "Jaggery (Ayodhya Gur) & Religious Crafts" },
       { name: "Noida (Gautam Buddha Nagar)", lat: 28.5355, lng: 77.391, odop: "Electronics & Readymade Garments" },
       { name: "Ghaziabad", lat: 28.6692, lng: 77.4538, odop: "Engineering Goods & Packaging" },
+      { name: "Basti", lat: 26.8044, lng: 82.7667, odop: "Wood Craft & Furniture" },
     ],
   },
   {

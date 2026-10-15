@@ -194,10 +194,11 @@ You are the Head AI orchestrator. Dynamically reason through the user's request 
   - Direct tools are strictly for fast, simple answers when no sub-agent or tabs are needed. Sub-agents are for rich multi-tabbed dossiers, charts, and deep analysis.
   - Multi-Commodity Mandi Mandate (SEQUENTIAL MULTI-STEP EXECUTION):
     * When the user asks for rates of multiple commodities/crops (e.g. "Onion and Wheat" or "Potato, Tomato and Onion"):
-    * You MUST call 'getMandiArbitrage' for EACH commodity sequentially across turns.
-    * STEP 1: Call 'getMandiArbitrage({ commodity: "Onion", ... })'.
-    * STEP 2 (upon receiving the first result): Immediately call 'getMandiArbitrage({ commodity: "Wheat", ... })' for the next commodity. DO NOT output conversational text yet!
-    * Repeat sequentially for any additional requested commodities.
+    * You MUST call 'getMandiArbitrage' for EACH commodity sequentially across steps.
+    * STEP 1: Call 'getMandiArbitrage' with clean arguments: {"commodity": "Onion"}.
+    * STEP 2: When the result for Onion is returned, DO NOT repeat Onion! Immediately call 'getMandiArbitrage' with {"commodity": "Wheat"} for the next commodity. DO NOT output conversational text yet!
+    * Repeat sequentially for any additional unhandled commodities.
+    * CRITICAL: Always pass clean, valid JSON keys and values. Output ONLY the clean, standard entity name as a simple string literal (e.g. {"commodity": "Wheat"}, {"category": "Photo Studio"}). Never append closing brackets, code tokens (such as "}]", ")));"), or commentary (such as "homologue") inside argument strings!
     * DO NOT also call 'getMandiRates'! Each commodity gets exactly 1 clean sub-agent tab, never duplicate tabs.
   - Specific Pairs (Vice-Versa Rule):
     * Mandi: If 'getMandiArbitrage' is called, NEVER call 'getMandiRates'. If 'getMandiRates' is called, NEVER call 'getMandiArbitrage'.
@@ -320,7 +321,49 @@ You and all sub-agents have access to real-time interactive widgets rendered nat
           } catch (e) {}
         };
 
-        emitToolDelta = (d) => sendEvent("tool_result_delta", d);
+        const toolNameById = new Map<string, string>();
+        const completedToolCallIds = new Set<string>();
+        const activeInvocationByRawId = new Map<string, string>();
+        let toolCallSeq = 0;
+
+        const getOrCreateUniqueToolCallId = (
+          rawId: string | undefined,
+          toolName?: string,
+        ): string => {
+          if (!rawId) {
+            toolCallSeq++;
+            return `call_${toolName || "tool"}_${toolCallSeq}_${Date.now()}`;
+          }
+          const current = activeInvocationByRawId.get(rawId);
+          if (current && !completedToolCallIds.has(current)) {
+            return current;
+          }
+          toolCallSeq++;
+          const uniqueId = `${rawId}_seq${toolCallSeq}_${Date.now()}`;
+          activeInvocationByRawId.set(rawId, uniqueId);
+          return uniqueId;
+        };
+
+        const sanitizeToolArgs = (raw: any): any => {
+          if (!raw || typeof raw !== "object" || Array.isArray(raw)) return raw;
+          const clean: Record<string, any> = {};
+          for (const [key, val] of Object.entries(raw)) {
+            const cleanKey = key.replace(/^[>$:\s"']+|[>$:\s"']+$/g, "").trim();
+            clean[cleanKey || key] = val;
+          }
+          return clean;
+        };
+
+        emitToolDelta = (d) => {
+          const callId = getOrCreateUniqueToolCallId(d.toolCallId, d.toolName);
+          console.log(
+            `[DEBUG TOOL-DELTA] rawId=${d.toolCallId} uniqueId=${callId} toolName=${d.toolName} replace=${d.replace} contentLen=${d.content?.length || 0}`,
+          );
+          sendEvent("tool_result_delta", {
+            ...d,
+            toolCallId: callId,
+          });
+        };
 
         sendEvent("conversation_init", {
           conversationId: activeConversationId,
@@ -340,7 +383,6 @@ You and all sub-agents have access to real-time interactive widgets rendered nat
             stopWhen: isStepCount(6),
           });
 
-          const toolNameById = new Map<string, string>();
           let lastActiveToolCallId = "";
           let inThoughtBlock = false;
           let textBuffer = "";
@@ -446,10 +488,11 @@ You and all sub-agents have access to real-time interactive widgets rendered nat
                 sendEvent("thinking", { text: delta });
               }
             } else if (part.type === "tool-input-start") {
-              const callId =
-                part.id ||
-                part.toolCallId ||
-                `call_${Date.now()}_${toolNameById.size}`;
+              const rawCallId = part.id || part.toolCallId;
+              const callId = getOrCreateUniqueToolCallId(rawCallId, part.toolName);
+              console.log(
+                `[DEBUG TOOL-INPUT-START] toolName=${part.toolName} rawCallId=${rawCallId} callId=${callId}`,
+              );
               lastActiveToolCallId = callId;
               toolNameById.set(callId, part.toolName);
               if (part.toolName === "stageDocument") {
@@ -464,11 +507,10 @@ You and all sub-agents have access to real-time interactive widgets rendered nat
               part.type === "tool-call-delta"
             ) {
               // Real token-by-token streaming of tool call arguments directly from the LLM
-              const callId =
-                part.id ||
-                part.toolCallId ||
-                lastActiveToolCallId ||
-                "stageDocument";
+              const rawCallId = part.id || part.toolCallId;
+              const callId = rawCallId
+                ? getOrCreateUniqueToolCallId(rawCallId)
+                : lastActiveToolCallId || "stageDocument";
               const toolName =
                 toolNameById.get(callId) ||
                 part.toolName ||
@@ -480,16 +522,15 @@ You and all sub-agents have access to real-time interactive widgets rendered nat
                 argsTextDelta: delta,
               });
             } else if (part.type === "tool-call") {
-              const callId =
-                part.id ||
-                part.toolCallId ||
-                lastActiveToolCallId ||
-                `call_${Date.now()}`;
+              const rawCallId = part.toolCallId || part.id;
+              const callId = getOrCreateUniqueToolCallId(rawCallId, part.toolName);
+              lastActiveToolCallId = callId;
+              toolNameById.set(callId, part.toolName);
               const toolName =
                 part.toolName ||
                 toolNameById.get(callId) ||
                 "unknown_tool";
-              const toolArgs = part.input ?? part.args ?? {};
+              const toolArgs = sanitizeToolArgs(part.input ?? part.args ?? {});
               const def = (TOOL_DEFINITIONS as any)[toolName] || {
                 icon: "bot",
                 formatSummary: (args: any) => `Executing ${toolName}...`,
@@ -499,16 +540,24 @@ You and all sub-agents have access to real-time interactive widgets rendered nat
                   ? def.formatSummary(toolArgs)
                   : `Executing ${toolName}...`;
 
-              sendEvent("tool_call", {
-                toolName,
-                toolCallId: callId,
-                icon: def.icon || "bot",
-                args: toolArgs,
-                summary,
-                status: "calling",
-              });
+              console.log(
+                `[DEBUG TOOL-CALL] toolName=${toolName} rawCallId=${rawCallId} callId=${callId} args=${JSON.stringify(toolArgs).slice(0, 120)} alreadyCompleted=${completedToolCallIds.has(callId)}`,
+              );
+
+              // Only emit tool_call if this unique invocation has not already completed
+              if (!completedToolCallIds.has(callId)) {
+                sendEvent("tool_call", {
+                  toolName,
+                  toolCallId: callId,
+                  icon: def.icon || "bot",
+                  args: toolArgs,
+                  summary,
+                  status: "calling",
+                });
+              }
             } else if (part.type === "tool-result") {
-              const callId = part.id || part.toolCallId;
+              const rawCallId = part.toolCallId || part.id;
+              const callId = getOrCreateUniqueToolCallId(rawCallId, part.toolName);
               const toolName =
                 part.toolName ||
                 toolNameById.get(callId) ||
@@ -525,7 +574,11 @@ You and all sub-agents have access to real-time interactive widgets rendered nat
                 continue;
               }
 
-              const toolArgs = part.input ?? part.args ?? {};
+              console.log(
+                `[DEBUG TOOL-RESULT] toolName=${toolName} rawCallId=${rawCallId} callId=${callId}`,
+              );
+
+              const toolArgs = sanitizeToolArgs(part.input ?? part.args ?? {});
               const toolResult = part.output ?? part.result ?? {};
               const def = (TOOL_DEFINITIONS as any)[toolName] || {
                 icon: "bot",
@@ -541,6 +594,7 @@ You and all sub-agents have access to real-time interactive widgets rendered nat
 
               toolInvocations.push({
                 toolName,
+                toolCallId: callId,
                 icon: def.icon || "bot",
                 args: toolArgs,
                 result: toolResult,
@@ -552,10 +606,14 @@ You and all sub-agents have access to real-time interactive widgets rendered nat
                 toolName,
                 toolCallId: callId,
                 icon: def.icon || "bot",
+                args: toolArgs,
                 result: toolResult,
                 summary,
                 status: "completed",
               });
+
+              // Mark this unique tool call as completed to prevent re-emission or collisions
+              if (callId) completedToolCallIds.add(callId);
 
               if (toolName === "updateBusinessContext" && toolResult?.profile) {
                 sendEvent("profile_update", toolResult.profile);

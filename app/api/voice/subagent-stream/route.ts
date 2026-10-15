@@ -274,10 +274,11 @@ You are the Head AI orchestrator. Dynamically reason through the user's request 
   - Direct tools are strictly for fast, simple answers when no sub-agent or tabs are needed. Sub-agents are for rich multi-tabbed dossiers, charts, and deep analysis.
   - Multi-Commodity Mandi Mandate (SEQUENTIAL MULTI-STEP EXECUTION):
     * When comparing multiple crops or commodities (e.g. "Onion and Wheat" or "Potato, Tomato and Onion"):
-    * You MUST call 'getMandiArbitrage' for EACH commodity sequentially across turns.
-    * STEP 1: Call 'getMandiArbitrage({ commodity: "Onion", ... })'.
-    * STEP 2 (upon receiving the first result): Immediately call 'getMandiArbitrage({ commodity: "Wheat", ... })' for the next commodity. DO NOT output conversational text yet!
-    * Repeat sequentially for any additional requested commodities.
+    * You MUST call 'getMandiArbitrage' for EACH commodity sequentially across steps.
+    * STEP 1: Call 'getMandiArbitrage' with clean arguments: {"commodity": "Onion"}.
+    * STEP 2: When the result for Onion is returned, DO NOT repeat Onion! Immediately call 'getMandiArbitrage' with {"commodity": "Wheat"} for the next commodity. DO NOT output conversational text yet!
+    * Repeat sequentially for any additional unhandled commodities.
+    * CRITICAL: Always pass clean, valid JSON keys and values. Output ONLY the clean, standard entity name as a simple string literal (e.g. {"commodity": "Wheat"}, {"category": "Photo Studio"}). Never append closing brackets, code tokens (such as "}]", ")));"), or commentary (such as "homologue") inside argument strings!
     * DO NOT also call direct 'getMandiRates'! Each commodity gets exactly 1 clean tab.
   - Specific Pairs (Vice-Versa Rule):
     * Mandi: If 'getMandiArbitrage' is called, NEVER call 'getMandiRates'. If 'getMandiRates' is called, NEVER call 'getMandiArbitrage'.
@@ -417,20 +418,7 @@ STRICT REGULATORY, SAFETY & PROHIBITED COMMERCE POLICY (MANDATORY):
         );
       }
     }
-    if (audioBase64) {
-      try {
-        userParts.push({
-          type: "file",
-          data: Buffer.from(audioBase64, "base64"),
-          mediaType: "audio/wav",
-        });
-      } catch (e) {
-        console.warn(
-          "[voice/subagent-stream] Failed to parse audio buffer:",
-          e,
-        );
-      }
-    }
+
     userParts.push({
       type: "text",
       text: imageBuffer

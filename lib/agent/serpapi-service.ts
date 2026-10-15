@@ -107,7 +107,10 @@ export async function searchGoogleMaps(params: {
         signal: AbortSignal.timeout(timeoutMs),
       });
       if (!res.ok) {
-        console.warn(`[SerpApi Google Maps] HTTP ${res.status}: ${res.statusText}`);
+        const errText = await res.text().catch(() => "");
+        console.warn(
+          `[SerpApi Google Maps] HTTP ${res.status}: ${res.statusText} - ${errText}`,
+        );
         return [];
       }
       const data = await res.json();
@@ -119,16 +122,7 @@ export async function searchGoogleMaps(params: {
   };
 
   try {
-    const page1 = await fetchPage(0);
-    let allRaw = page1;
-
-    if (limit > 20 && page1.length >= 18) {
-      const [page2, page3] = await Promise.all([
-        fetchPage(20),
-        limit > 35 ? fetchPage(40) : Promise.resolve([]),
-      ]);
-      allRaw = [...page1, ...page2, ...page3];
-    }
+    const allRaw = await fetchPage(0);
 
     const seen = new Set<string>();
     const deduplicated: GoogleMapsPlace[] = [];

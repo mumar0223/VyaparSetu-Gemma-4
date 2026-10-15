@@ -124,7 +124,7 @@ export const ThinkingAccordion = React.memo(function ThinkingAccordion({
             const isCalling = tc.status === "calling";
 
             return (
-              <div key={idx} className="flex items-center gap-2.5 py-0.5">
+              <div key={tc.toolCallId || idx} className="flex items-center gap-2.5 py-0.5">
                 <span className="shrink-0">
                   {isCalling ? (
                     <Loader2 className="size-4 text-muted-foreground animate-spin" />

@@ -46,12 +46,53 @@ export async function runMandiSubAgent(
     onMarkdown?: (md: string) => void;
   }
 ): Promise<MandiSubAgentResult> {
-  const commodity = params.commodity || "Wheat";
-  const district = params.district || "Nashik";
-  const state = params.state || "Maharashtra";
+  // Robust parameter resolution in case Gemma outputs messy/prefixed keys (e.g. ">$commodity", "commodity:", "$commodity")
+  const pRecord = (params || {}) as Record<string, any>;
+  const resolvedCommodity =
+    params.commodity ||
+    pRecord[">$commodity"] ||
+    pRecord["$commodity"] ||
+    pRecord["commodity:"] ||
+    pRecord[">commodity"] ||
+    Object.entries(pRecord).find(([k]) =>
+      k.toLowerCase().replace(/[^a-z]/g, "").includes("commodity")
+    )?.[1];
+
+  let commodity = (resolvedCommodity || "")
+    .toString()
+    .trim()
+    .replace(/^[>$:\s"']+|[>$:\s"']+$/g, "");
+
+  const effectiveQuery = params.query || pRecord["query:"] || pRecord[">$query"] || "";
+
+  if (!commodity) {
+    commodity = effectiveQuery ? effectiveQuery.split(" ")[0] : "Crop";
+  }
+
+  const resolvedDistrict =
+    params.district ||
+    pRecord[">$district"] ||
+    pRecord["district:"] ||
+    pRecord["$district"] ||
+    "Nashik";
+  const district = (resolvedDistrict || "")
+    .toString()
+    .trim()
+    .replace(/^[>$:\s"']+|[>$:\s"']+$/g, "") || "Nashik";
+
+  const resolvedState =
+    params.state ||
+    pRecord[">$state"] ||
+    pRecord["state:"] ||
+    pRecord["$state"] ||
+    "Maharashtra";
+  const state = (resolvedState || "")
+    .toString()
+    .trim()
+    .replace(/^[>$:\s"']+|[>$:\s"']+$/g, "") || "Maharashtra";
 
   const searchQuery = [
-    params.query,
+    effectiveQuery,
     commodity,
     params.variety,
     "mandi bhav today",

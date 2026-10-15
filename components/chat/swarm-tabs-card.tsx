@@ -189,8 +189,21 @@ function SwarmTabsCardInner({
         toolCall: tc,
       });
     } else if (tc.toolName === "getMandiArbitrage" || tc.toolName === "getMandiRates") {
-      const comm = args.commodity || res.commodity || res.data?.commodity || "";
-      const cleanComm = comm ? comm.split(/[(/ ]/)[0] : "";
+      const comm =
+        res.commodity ||
+        res.data?.commodity ||
+        (typeof res.title === "string" && res.title.includes(":")
+          ? res.title.split(":")[1]?.split("(")[0]?.trim()
+          : "") ||
+        args.commodity ||
+        "";
+      const cleanComm = comm
+        ? String(comm)
+            .replace(/^[>$:\s"']+|[>$:\s"']+$/g, "")
+            .replace(/[\s\}\]\)\;]+$/g, "")
+            .trim()
+            .split(/[(/ ]/)[0]
+        : "";
       awakenedDomains.push({
         id: tc.toolCallId || `mandi_${idx}_${cleanComm || idx}`,
         type: "mandi",
@@ -292,11 +305,12 @@ function SwarmTabsCardInner({
 
   const isMultiDomain = awakenedDomains.length > 1;
 
-  // Default ALWAYS to index 0 unless user explicitly clicked a tab
+  // Prioritize currently active streaming sub-agent unless user has explicitly clicked a tab
+  const currentlyStreamingDomain = awakenedDomains.find((d) => d.status === "calling");
   const activeTabId =
     userSelectedTabId && awakenedDomains.some((d) => d.id === userSelectedTabId)
       ? userSelectedTabId
-      : (awakenedDomains[0]?.id || "");
+      : (currentlyStreamingDomain?.id || awakenedDomains[0]?.id || "");
 
   const currentDomain =
     awakenedDomains.find((d) => d.id === activeTabId) || awakenedDomains[0];

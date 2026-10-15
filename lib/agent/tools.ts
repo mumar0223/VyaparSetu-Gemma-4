@@ -21,6 +21,7 @@ import { runMandiSubAgent } from "./subagents/mandi-subagent";
 import { runSchemesSubAgent } from "./subagents/schemes-subagent";
 import { runCustomResearchSubAgent } from "./subagents/custom-research-subagent";
 import { stableMarkdown } from "./subagents/stream-structured";
+import { getDistrictGeo } from "@/lib/api/district-data";
 
 /**
  * Zod Schemas for Tools
@@ -2095,7 +2096,7 @@ ${cards.map((c) => `**${c.title}**: ${c.whyInThisDistrict}\n- *Subsidy:* ${(c.ma
             ? validCoords.reduce((sum, s) => sum + (s.lng ?? 0), 0) / validCoords.length
             : undefined;
 
-        // Helper to check distance between user's profile lat/lon and shop centroid
+        // Helper to check distance between coordinates
         const calcDistKm = (
           lat1: number,
           lon1: number,
@@ -2114,28 +2115,61 @@ ${cards.map((c) => `**${c.title}**: ${c.whyInThisDistrict}\n- *Subsidy:* ${(c.ma
           return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         };
 
-        // Determine true center: if params.lat/lon is close to cluster (<= radius * 1.5), keep it.
-        // Otherwise, center the radar circle and map directly on the shops' centroid!
-        let centerLat = centroidLat ?? params.lat ?? 12.9716;
-        let centerLng = centroidLng ?? params.lon ?? 77.5946;
+        // Calculate the highest-density commercial cluster center among discovered shops
+        let denseClusterLat = centroidLat;
+        let denseClusterLng = centroidLng;
+
+        if (validCoords.length > 1) {
+          let maxNeighbors = -1;
+          let focalShop = validCoords[0];
+
+          for (const shop of validCoords) {
+            const count = validCoords.filter((other) => {
+              const d = calcDistKm(shop.lat!, shop.lng!, other.lat!, other.lng!);
+              return d <= (params.radiusKm || 5);
+            }).length;
+
+            if (count > maxNeighbors) {
+              maxNeighbors = count;
+              focalShop = shop;
+            }
+          }
+
+          // Compute centroid of the dense core around the focal shop
+          const coreShops = validCoords.filter((other) => {
+            const d = calcDistKm(focalShop.lat!, focalShop.lng!, other.lat!, other.lng!);
+            return d <= (params.radiusKm || 5);
+          });
+
+          if (coreShops.length > 0) {
+            denseClusterLat =
+              coreShops.reduce((sum, s) => sum + (s.lat ?? 0), 0) / coreShops.length;
+            denseClusterLng =
+              coreShops.reduce((sum, s) => sum + (s.lng ?? 0), 0) / coreShops.length;
+          }
+        }
+
+        // Determine true center: center radar circle directly on the dense commercial cluster
+        const locGeo = params.location ? getDistrictGeo(params.location) : null;
+        let centerLat = denseClusterLat ?? locGeo?.lat ?? params.lat ?? 12.9716;
+        let centerLng = denseClusterLng ?? locGeo?.lng ?? params.lon ?? 77.5946;
         let isHubNearby = false;
 
         if (params.lat && params.lon) {
-          if (centroidLat !== undefined && centroidLng !== undefined) {
+          if (denseClusterLat !== undefined && denseClusterLng !== undefined) {
             const dist = calcDistKm(
               params.lat,
               params.lon,
-              centroidLat,
-              centroidLng,
+              denseClusterLat,
+              denseClusterLng,
             );
             if (dist <= (params.radiusKm || 5) * 1.5) {
               centerLat = params.lat;
               centerLng = params.lon;
               isHubNearby = true;
             } else {
-              // User searched an area separate from their profile; center radar on the shops
-              centerLat = centroidLat;
-              centerLng = centroidLng;
+              centerLat = denseClusterLat;
+              centerLng = denseClusterLng;
               isHubNearby = false;
             }
           } else {
@@ -2247,7 +2281,7 @@ ${shops.map((s) => `| **${s.name}** | ${s.distance} | ★ ${s.rating || "4.0"} (
 
     getMandiArbitrage: tool({
       description:
-        "FULL SUB-AGENT TOOL: Deeply evaluates live APMC yard prices, calculates inter-mandi price spreads, transport viability, Recharts graphs, and dedicated Swarm dossier tabs. For multiple commodities (e.g. Onion and Wheat), call this tool once for each commodity in parallel. STRICT MUTUAL EXCLUSIVITY: If you call 'getMandiArbitrage', DO NOT call the direct tool 'getMandiRates' (and vice versa). Never call both!",
+        "FULL SUB-AGENT TOOL: Deeply evaluates live APMC yard prices, calculates inter-mandi price spreads, transport viability, Recharts graphs, and dedicated Swarm dossier tabs. For multiple commodities (e.g. Onion and Wheat), call this tool once for each commodity sequentially step-by-step. STRICT MUTUAL EXCLUSIVITY: If you call 'getMandiArbitrage', DO NOT call the direct tool 'getMandiRates' (and vice versa). Never call both!",
       inputSchema: z
         .object({
           commodity: z
@@ -2278,10 +2312,17 @@ ${shops.map((s) => `| **${s.name}** | ${s.distance} | ★ ${s.rating || "4.0"} (
         })
         .passthrough(),
       execute: async (params, context: any) => {
+        const cleanParams: Record<string, any> = {};
+        if (params && typeof params === "object") {
+          for (const [k, v] of Object.entries(params)) {
+            const cleanKey = k.replace(/^[>$:\s"']+|[>$:\s"']+$/g, "").trim();
+            cleanParams[cleanKey || k] = v;
+          }
+        }
         const toolCallId =
           context?.toolCallId || context?.id || `call_${Date.now()}_mandi`;
-        const em = makeEmitter(ctx, "getMandiArbitrage", toolCallId, params);
-        const result = await runMandiSubAgent(params, {
+        const em = makeEmitter(ctx, "getMandiArbitrage", toolCallId, cleanParams);
+        const result = await runMandiSubAgent(cleanParams, {
           onMarkdown: (md) => em.emit(stableMarkdown(md)),
         });
         em.flush();
@@ -2632,8 +2673,18 @@ export const TOOL_DEFINITIONS: Record<string, ToolMeta> = {
   getMandiArbitrage: {
     name: "getMandiArbitrage",
     icon: "sprout",
-    formatSummary: (args) =>
-      `Analyzed live APMC yard rates for ${args?.commodity || "crop"}`,
+    formatSummary: (args, res) => {
+      const rawComm =
+        res?.commodity ||
+        res?.data?.commodity ||
+        args?.commodity ||
+        "crop";
+      const comm = String(rawComm)
+        .replace(/^[>$:\s"']+|[>$:\s"']+$/g, "")
+        .replace(/[\s\}\]\)\;]+$/g, "")
+        .trim();
+      return `Analyzed live APMC yard rates for ${comm || "crop"}`;
+    },
   },
   evaluateGovtSchemes: {
     name: "evaluateGovtSchemes",
@@ -2650,7 +2701,20 @@ export const TOOL_DEFINITIONS: Record<string, ToolMeta> = {
   updateBusinessContext: {
     name: "updateBusinessContext",
     icon: "compass",
-    formatSummary: (args) =>
-      `Remembered business persona: ${args?.businessName || args?.category || "Business"} in ${args?.district || args?.city || "Area"}`,
+    formatSummary: (args) => {
+      const rawCategory = args?.businessName || args?.category || "Business";
+      const rawLocation = args?.district || args?.city || args?.state || "Area";
+      const cleanName = String(rawCategory)
+        .split(/[,\n:;})]/)[0]
+        .replace(/^[>$:\s"']+|[>$:\s"']+$/g, "")
+        .trim()
+        .slice(0, 30);
+      const cleanPlace = String(rawLocation)
+        .split(/[,\n:;})]/)[0]
+        .replace(/^[>$:\s"']+|[>$:\s"']+$/g, "")
+        .trim()
+        .slice(0, 25);
+      return `Remembered business profile: ${cleanName || "Business"} in ${cleanPlace || "Area"}`;
+    },
   },
 };

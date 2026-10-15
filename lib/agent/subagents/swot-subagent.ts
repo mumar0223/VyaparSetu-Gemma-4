@@ -52,17 +52,19 @@ export async function runSWOTSubAgent(
   const radiusKm = params.radiusKm || 5;
 
   // 1. Fetch live competitor density via SerpApi Google Maps
-  const [shops, webTrends] = await Promise.all([
-    searchCatchmentShops({
-      category,
-      location,
-      lat: params.lat,
-      lon: params.lon,
-      radiusKm,
-      limit: 25,
-    }),
-    searchGoogleWeb(`${category} business opportunities profit margin challenges India`, 4),
-  ]);
+  const shops = await searchCatchmentShops({
+    category,
+    location,
+    lat: params.lat,
+    lon: params.lon,
+    radiusKm,
+    limit: 20,
+  });
+
+  const webTrends = await searchGoogleWeb(
+    `${category} business opportunities profit margin challenges India`,
+    4,
+  );
 
   const totalCompetitors = shops.length;
   const highThreatCount = shops.filter((s) => s.threatLevel === "High").length;

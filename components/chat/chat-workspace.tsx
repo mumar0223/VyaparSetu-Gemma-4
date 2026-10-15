@@ -1545,6 +1545,7 @@ function formatSmartChatTitle(rawText: string): string {
             }
           } else if (eventType === "tool_result_delta" || eventType === "artifact_delta") {
             const toolCallId = data.toolCallId;
+            console.log(`[FE DEBUG tool_result_delta] toolCallId=${toolCallId} toolName=${data.toolName} replace=${data.replace} total_entries=${streamedToolCalls.length} existing_ids=[${streamedToolCalls.map(t => t.toolCallId).join(',')}]`);
             const idx = streamedToolCalls.findIndex((t) =>
               toolCallId ? t.toolCallId === toolCallId : false,
             );
@@ -1554,6 +1555,11 @@ function formatSmartChatTitle(rawText: string): string {
 
             if (idx >= 0) {
               const existing = streamedToolCalls[idx];
+              // GUARD: Never overwrite a completed tool's content with stale deltas
+              if (existing.status === "completed") {
+                console.log(`[FE DEBUG tool_result_delta] SKIPPED - tool already completed at idx=${idx}`);
+                continue;
+              }
               const prevRes = (existing.result as any) || {};
               const prevData = prevRes.data || {};
               const prevContent = prevData.content || prevRes.content || "";
@@ -1628,16 +1634,21 @@ function formatSmartChatTitle(rawText: string): string {
             }
             scheduleFlush();
           } else if (eventType === "tool_call") {
+            console.log(`[FE DEBUG tool_call] toolCallId=${data.toolCallId} toolName=${data.toolName} total_entries=${streamedToolCalls.length} existing_ids=[${streamedToolCalls.map(t => t.toolCallId).join(',')}]`);
             const idx = streamedToolCalls.findIndex((t) =>
               data.toolCallId ? t.toolCallId === data.toolCallId : false,
             );
             if (idx >= 0) {
-              streamedToolCalls[idx] = {
-                ...streamedToolCalls[idx],
-                args: data.args || streamedToolCalls[idx].args,
-                summary: data.summary || streamedToolCalls[idx].summary,
-                status: "calling",
-              };
+              console.log(`[FE DEBUG tool_call] FOUND existing at idx=${idx}, current status=${streamedToolCalls[idx].status}`);
+              // GUARD: Never reset a completed tool back to "calling"
+              if (streamedToolCalls[idx].status !== "completed") {
+                streamedToolCalls[idx] = {
+                  ...streamedToolCalls[idx],
+                  args: data.args || streamedToolCalls[idx].args,
+                  summary: data.summary || streamedToolCalls[idx].summary,
+                  status: "calling",
+                };
+              }
             } else {
               streamedToolCalls.push({
                 toolName: data.toolName,
@@ -1650,6 +1661,7 @@ function formatSmartChatTitle(rawText: string): string {
             }
             scheduleFlush();
           } else if (eventType === "tool_result") {
+            console.log(`[FE DEBUG tool_result] toolCallId=${data.toolCallId} toolName=${data.toolName} total_entries=${streamedToolCalls.length} existing_ids=[${streamedToolCalls.map(t => `${t.toolCallId}(${t.status})`).join(',')}]`);
             const chatTitle =
               conversations.find((c) => c.id === currentConvId)?.title ||
               "Business Research";
@@ -1662,46 +1674,65 @@ function formatSmartChatTitle(rawText: string): string {
             );
 
             const isUpdated = data.result?.isUpdated;
-            const targetId = data.result?.targetArtifactId || data.result?.artifactId;
+            const targetId =
+              data.result?.targetArtifactId || data.result?.artifactId;
 
-            streamedToolCalls = streamedToolCalls.map((t) => {
-              const matchesCall = data.toolCallId
-                ? t.toolCallId === data.toolCallId
-                : false;
+            const hasMatch = streamedToolCalls.some((t) =>
+              data.toolCallId ? t.toolCallId === data.toolCallId : false,
+            );
 
-              if (matchesCall) {
-                return {
-                  ...t,
-                  icon: data.icon || t.icon,
-                  result: data.result,
-                  summary: data.summary || t.summary,
-                  status: "completed",
-                  completedAt: t.completedAt || Date.now(),
-                };
-              }
+            if (hasMatch) {
+              streamedToolCalls = streamedToolCalls.map((t) => {
+                const matchesCall = data.toolCallId
+                  ? t.toolCallId === data.toolCallId
+                  : false;
 
-              if (isUpdated && targetId) {
-                const res = t.result as any;
-                const match =
-                  res?.artifactId === targetId ||
-                  res?.data?.artifactId === targetId ||
-                  (targetId === "1" && res?.isArtifact) ||
-                  (targetId === "art_1" && res?.isArtifact);
-                if (match) {
+                if (matchesCall) {
                   return {
                     ...t,
-                    result: {
-                      ...res,
-                      title: data.result.title || res.title,
-                      summary: data.result.summary || res.summary,
-                      data: data.result.data || data.result,
-                    },
+                    icon: data.icon || t.icon,
+                    args: data.args || t.args,
+                    result: data.result,
+                    summary: data.summary || t.summary,
+                    status: "completed",
+                    completedAt: t.completedAt || Date.now(),
                   };
                 }
-              }
 
-              return t;
-            });
+                if (isUpdated && targetId) {
+                  const res = t.result as any;
+                  const match =
+                    res?.artifactId === targetId ||
+                    res?.data?.artifactId === targetId ||
+                    (targetId === "1" && res?.isArtifact) ||
+                    (targetId === "art_1" && res?.isArtifact);
+                  if (match) {
+                    return {
+                      ...t,
+                      result: {
+                        ...res,
+                        title: data.result.title || res.title,
+                        summary: data.result.summary || res.summary,
+                        data: data.result.data || data.result,
+                      },
+                    };
+                  }
+                }
+
+                return t;
+              });
+            } else {
+              streamedToolCalls.push({
+                toolName: data.toolName,
+                toolCallId: data.toolCallId,
+                icon: data.icon,
+                args: data.args,
+                result: data.result,
+                summary: data.summary,
+                status: "completed",
+                completedAt: Date.now(),
+              });
+            }
 
             if (isUpdated && data.result?.data) {
               setActiveArtifact((curr) => {

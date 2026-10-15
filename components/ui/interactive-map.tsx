@@ -521,12 +521,22 @@ export function InteractiveMap({
                   mapInstanceRef.current.invalidateSize({ debounceMoveend: true });
                   if (!hasFittedInitialBoundsRef.current && outerCircleRef.current) {
                     try {
-                      mapInstanceRef.current.fitBounds(outerCircleRef.current.getBounds(), {
-                        padding: [25, 25],
-                        maxZoom: 15,
-                        animate: false,
-                      });
-                      hasFittedInitialBoundsRef.current = true;
+                      const boundsToFit =
+                        markersGroupRef.current &&
+                        markersGroupRef.current.getLayers().length > 1
+                          ? L.featureGroup([
+                              outerCircleRef.current,
+                              markersGroupRef.current,
+                            ]).getBounds()
+                          : outerCircleRef.current.getBounds();
+                      if (boundsToFit && boundsToFit.isValid()) {
+                        mapInstanceRef.current.fitBounds(boundsToFit, {
+                          padding: [30, 30],
+                          maxZoom: 15,
+                          animate: false,
+                        });
+                        hasFittedInitialBoundsRef.current = true;
+                      }
                     } catch (_) {}
                   }
                 }
@@ -546,12 +556,22 @@ export function InteractiveMap({
                 mapInstanceRef.current.invalidateSize({ debounceMoveend: true });
                 if (!hasFittedInitialBoundsRef.current && outerCircleRef.current) {
                   try {
-                    mapInstanceRef.current.fitBounds(outerCircleRef.current.getBounds(), {
-                      padding: [25, 25],
-                      maxZoom: 15,
-                      animate: false,
-                    });
-                    hasFittedInitialBoundsRef.current = true;
+                    const boundsToFit =
+                      markersGroupRef.current &&
+                      markersGroupRef.current.getLayers().length > 1
+                        ? L.featureGroup([
+                            outerCircleRef.current,
+                            markersGroupRef.current,
+                          ]).getBounds()
+                        : outerCircleRef.current.getBounds();
+                    if (boundsToFit && boundsToFit.isValid()) {
+                      mapInstanceRef.current.fitBounds(boundsToFit, {
+                        padding: [30, 30],
+                        maxZoom: 15,
+                        animate: false,
+                      });
+                      hasFittedInitialBoundsRef.current = true;
+                    }
                   } catch (_) {}
                 }
               }
