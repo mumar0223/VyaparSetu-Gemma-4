@@ -568,7 +568,7 @@ export function ChatWorkspace({
         if (activeChatId === id) {
           setActiveChatId(null);
           setMessages([]);
-          router.push("/ai-saathi");
+          router.push("/dashboard");
         }
       } catch (err) {
         console.error("Failed to delete chat:", err);
@@ -830,8 +830,8 @@ export function ChatWorkspace({
         setMessages([]);
         setChatLoadError(null);
         setIsInitialLoading(false);
-        if (!options?.skipPushState && typeof window !== "undefined" && window.location.pathname !== "/") {
-          window.history.pushState(null, "", "/");
+        if (!options?.skipPushState && typeof window !== "undefined" && window.location.pathname !== "/dashboard") {
+          window.history.pushState(null, "", "/dashboard");
         }
         return;
       }

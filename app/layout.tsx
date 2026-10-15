@@ -35,7 +35,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${playfair.variable} font-sans antialiased text-foreground bg-background`}
+        className={`${inter.variable} ${playfair.variable} font-sans antialiased text-foreground bg-cream dark:bg-background`}
       >
         <ThemeProvider
           attribute="class"
@@ -44,7 +44,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <LanguageProvider>
-            <AppMobileShell>{children}</AppMobileShell>
+            {children}
           </LanguageProvider>
           <Toaster position="bottom-right" />
         </ThemeProvider>

@@ -564,7 +564,7 @@ export function EnterpriseHubView({
     if (onAskAi) {
       onAskAi(prompt);
     } else {
-      router.push(`/?prompt=${encodeURIComponent(prompt)}`);
+      router.push(`/dashboard?prompt=${encodeURIComponent(prompt)}`);
     }
   };
 

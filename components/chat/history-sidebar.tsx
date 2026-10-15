@@ -93,14 +93,15 @@ export function HistorySidebar({
 
   // Filter conversations by search query
   const filtered = conversations.filter((c) =>
-    c.title.toLowerCase().includes(searchQuery.toLowerCase())
+    c.title.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const pinnedChats = filtered.filter((c) => c.pinned);
   const recentChats = filtered.filter((c) => !c.pinned);
 
   const pathname = usePathname();
-  const isEnterpriseActive = pathname === "/enterprise" || activeView === "enterprise";
+  const isEnterpriseActive =
+    pathname === "/enterprise" || activeView === "enterprise";
   const isCreditActive = pathname === "/credit";
   const isEmiActive = pathname === "/emi";
 
@@ -117,9 +118,11 @@ export function HistorySidebar({
             }}
             className={cn(
               "flex flex-1 h-9 items-center justify-center gap-2 rounded-xl px-3 text-[13px] font-semibold transition-colors cursor-pointer border shadow-2xs",
-              pathname === "/" && !activeChatId && activeView !== "enterprise"
+              (pathname === "/dashboard" || pathname === "/") &&
+                !activeChatId &&
+                activeView !== "enterprise"
                 ? "bg-mint-pale dark:bg-mint/15 text-forest dark:text-mint border-mint/40"
-                : "bg-cream dark:bg-muted hover:bg-mint-pale dark:hover:bg-muted/80 text-forest dark:text-foreground border-sage/40 dark:border-border"
+                : "bg-cream dark:bg-muted hover:bg-mint-pale dark:hover:bg-muted/80 text-forest dark:text-foreground border-sage/40 dark:border-border",
             )}
           >
             <Plus className="size-4 text-forest dark:text-mint" />
@@ -148,10 +151,15 @@ export function HistorySidebar({
               "flex items-center gap-2.5 w-full h-9 px-3 rounded-xl text-[12.5px] font-semibold transition-all cursor-pointer border select-none",
               isEnterpriseActive
                 ? "bg-forest dark:bg-mint text-white dark:text-black border-transparent font-bold shadow-xs"
-                : "bg-white/70 dark:bg-card/70 hover:bg-cream dark:hover:bg-muted text-forest dark:text-foreground border-sage/30 dark:border-border shadow-2xs"
+                : "bg-white/70 dark:bg-card/70 hover:bg-cream dark:hover:bg-muted text-forest dark:text-foreground border-sage/30 dark:border-border shadow-2xs",
             )}
           >
-            <Building2 className={cn("size-3.5 shrink-0", isEnterpriseActive ? "text-mint dark:text-black" : "text-mint")} />
+            <Building2
+              className={cn(
+                "size-3.5 shrink-0",
+                isEnterpriseActive ? "text-mint dark:text-black" : "text-mint",
+              )}
+            />
             <span className="truncate">Enterprise Hub (व्यापार हब)</span>
           </Link>
 
@@ -165,10 +173,17 @@ export function HistorySidebar({
               "flex items-center gap-2.5 w-full h-9 px-3 rounded-xl text-[12.5px] font-semibold transition-all cursor-pointer border select-none",
               isCreditActive
                 ? "bg-forest dark:bg-mint text-white dark:text-black border-transparent font-bold shadow-xs"
-                : "bg-white/70 dark:bg-card/70 hover:bg-cream dark:hover:bg-muted text-forest dark:text-foreground border-sage/30 dark:border-border shadow-2xs"
+                : "bg-white/70 dark:bg-card/70 hover:bg-cream dark:hover:bg-muted text-forest dark:text-foreground border-sage/30 dark:border-border shadow-2xs",
             )}
           >
-            <CreditCard className={cn("size-3.5 shrink-0", isCreditActive ? "text-mint dark:text-black" : "text-forest dark:text-mint")} />
+            <CreditCard
+              className={cn(
+                "size-3.5 shrink-0",
+                isCreditActive
+                  ? "text-mint dark:text-black"
+                  : "text-forest dark:text-mint",
+              )}
+            />
             <span className="truncate">Credit Score & CIBIL (क्रेडिट)</span>
           </Link>
 
@@ -182,10 +197,15 @@ export function HistorySidebar({
               "flex items-center gap-2.5 w-full h-9 px-3 rounded-xl text-[12.5px] font-semibold transition-all cursor-pointer border select-none",
               isEmiActive
                 ? "bg-forest dark:bg-mint text-white dark:text-black border-transparent font-bold shadow-xs"
-                : "bg-white/70 dark:bg-card/70 hover:bg-cream dark:hover:bg-muted text-forest dark:text-foreground border-sage/30 dark:border-border shadow-2xs"
+                : "bg-white/70 dark:bg-card/70 hover:bg-cream dark:hover:bg-muted text-forest dark:text-foreground border-sage/30 dark:border-border shadow-2xs",
             )}
           >
-            <Calculator className={cn("size-3.5 shrink-0", isEmiActive ? "text-mint dark:text-black" : "text-orange")} />
+            <Calculator
+              className={cn(
+                "size-3.5 shrink-0",
+                isEmiActive ? "text-mint dark:text-black" : "text-orange",
+              )}
+            />
             <span className="truncate">EMI & Loan Simulator (ईएमआई)</span>
           </Link>
         </div>
@@ -198,7 +218,7 @@ export function HistorySidebar({
             "flex h-9 items-center gap-2 rounded-xl border border-sage/20 dark:border-border px-2.5 text-[12.5px] text-foreground",
             isMobileSheet
               ? "bg-cream dark:bg-muted/70"
-              : "bg-white/40 dark:bg-card/40"
+              : "bg-white/40 dark:bg-card/40",
           )}
         >
           <Search className="size-3.5 shrink-0 text-muted-foreground" />
@@ -231,7 +251,9 @@ export function HistorySidebar({
         >
           <div className="flex items-center gap-2">
             <AudioLines className="size-4 text-mint group-hover:scale-110 transition-transform animate-pulse" />
-            <span className="text-[12.5px] font-semibold">{t("history.voiceAgent", "Voice Agent OS")}</span>
+            <span className="text-[12.5px] font-semibold">
+              {t("history.voiceAgent", "Voice Agent OS")}
+            </span>
           </div>
           <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-full bg-mint/20 text-forest dark:text-mint border border-mint/30">
             {t("history.liveBadge", "Live")}
@@ -319,9 +341,9 @@ export function HistorySidebar({
       {/* ── Desktop Inline Collapsible History Sidebar (>= 1024px, Left-Docked) ── */}
       <aside
         className={cn(
-          "hidden lg:flex shrink-0 flex-col border-r border-sage/20 dark:border-border bg-white/35 dark:bg-card/35 h-full select-none overflow-hidden font-sans",
+          "hidden lg:flex shrink-0 flex-col border-r border-sage/20 dark:border-border bg-white/45 dark:bg-card/45 backdrop-blur-md h-full select-none overflow-hidden font-sans z-20",
           mounted && "transition-[width] duration-300 ease-in-out",
-          isOpen ? "w-[260px]" : "w-0 border-r-0"
+          isOpen ? "w-[260px]" : "w-0 border-r-0",
         )}
       >
         <div className="w-[260px] h-full flex flex-col shrink-0">
@@ -411,7 +433,7 @@ function ChatItem({
             "flex items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-[13px] transition-colors cursor-pointer leading-tight",
             isActive
               ? "bg-cream dark:bg-muted text-forest dark:text-mint font-semibold"
-              : "text-muted-foreground hover:bg-cream/60 dark:hover:bg-muted/50 hover:text-foreground"
+              : "text-muted-foreground hover:bg-cream/60 dark:hover:bg-muted/50 hover:text-foreground",
           )}
         >
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -425,7 +447,7 @@ function ChatItem({
               "flex items-center gap-1 shrink-0",
               isActive || conversation.pinned
                 ? "opacity-100"
-                : "opacity-0 group-hover:opacity-100 transition-opacity"
+                : "opacity-0 group-hover:opacity-100 transition-opacity",
             )}
             onClick={(e) => e.stopPropagation()}
           >
@@ -438,7 +460,7 @@ function ChatItem({
               title={conversation.pinned ? "Unpin chat" : "Pin chat"}
               className={cn(
                 "size-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-cream dark:hover:bg-muted cursor-pointer transition-colors",
-                conversation.pinned && "text-mint font-bold"
+                conversation.pinned && "text-mint font-bold",
               )}
             >
               <Pin className="size-3.5" />
@@ -446,9 +468,7 @@ function ChatItem({
 
             {/* Shadcn Dropdown Menu for More Actions */}
             <DropdownMenu>
-              <DropdownMenuTrigger
-                className="size-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-cream dark:hover:bg-muted cursor-pointer transition-colors outline-hidden"
-              >
+              <DropdownMenuTrigger className="size-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-cream dark:hover:bg-muted cursor-pointer transition-colors outline-hidden">
                 <MoreHorizontal className="size-3.5" />
               </DropdownMenuTrigger>
 

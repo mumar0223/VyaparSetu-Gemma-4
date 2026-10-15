@@ -4,7 +4,6 @@
 @import "katex/dist/katex.min.css";
 @import "leaflet/dist/leaflet.css";
 
-
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -55,19 +54,19 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 
-  --color-navy: #0F2B40;
+  --color-navy: #0f2b40;
   --color-navy-dark: #102735;
-  --color-cream: #FAF6EB;
-  --color-forest: #1B4332;
-  --color-forest-deep: #0B4632;
-  --color-mint: #4ADE80;
-  --color-mint-light: #C2FBE8;
-  --color-mint-pale: #EAFFFA;
-  --color-sage: #A8E3D1;
-  --color-orange: #D98E2A;
-  --color-orange-hover: #C27D22;
-  --color-ink: #1A1A1A;
-  --color-ink-muted: #5B6660;
+  --color-cream: #faf6eb;
+  --color-forest: #1b4332;
+  --color-forest-deep: #0b4632;
+  --color-mint: #4ade80;
+  --color-mint-light: #c2fbe8;
+  --color-mint-pale: #eafffa;
+  --color-sage: #a8e3d1;
+  --color-orange: #d98e2a;
+  --color-orange-hover: #c27d22;
+  --color-ink: #1a1a1a;
+  --color-ink-muted: #5b6660;
 
   --font-serif: "Playfair Display", serif;
 }
@@ -170,11 +169,10 @@
   body {
     height: 100%;
     height: 100dvh;
-    overflow: hidden;
     overscroll-behavior: none;
   }
   body {
-    @apply text-foreground bg-background;
+    @apply text-foreground bg-cream dark:bg-background;
   }
   html {
     @apply font-sans;
@@ -199,7 +197,8 @@
 }
 * {
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in oklch, var(--foreground) 18%, transparent) transparent;
+  scrollbar-color: color-mix(in oklch, var(--foreground) 18%, transparent)
+    transparent;
 }
 
 @keyframes dash-flow {
@@ -332,4 +331,4 @@
 }
 .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
   background: color-mix(in oklch, var(--foreground) 30%, transparent);
-}
+}

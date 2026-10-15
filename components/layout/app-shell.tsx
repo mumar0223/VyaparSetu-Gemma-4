@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { HistorySidebar } from "@/components/chat/history-sidebar";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { UserProfileDialog } from "@/components/profile/user-profile-dialog";
+import { AppBackground } from "@/components/app-background";
 import {
   getActiveBusinessProfile,
   getAllConversations,
@@ -121,7 +122,10 @@ export function AppShell({
   };
 
   return (
-    <div className="relative flex h-full w-full overflow-hidden bg-transparent text-foreground font-sans">
+    <div className="relative flex h-full h-dvh w-full overflow-hidden bg-cream dark:bg-background text-foreground font-sans">
+      {/* ── Fixed Animated Hexagonal Grid Background ── */}
+      <AppBackground />
+
       {/* ── Left-Side History Sidebar ── */}
       <HistorySidebar
         conversations={conversations}
@@ -132,10 +136,10 @@ export function AppShell({
           router.push(`/c/${id}`);
         }}
         onNewChat={() => {
-          router.push("/");
+          router.push("/dashboard");
         }}
         onStartVoiceSession={() => {
-          router.push("/?mode=voice");
+          router.push("/dashboard?mode=voice");
         }}
         onDeleteChat={handleDeleteChat}
         onRenameChat={handleRenameChat}
