@@ -25,7 +25,7 @@ import type { ConversationSummary } from "@/components/chat/types";
 
 interface AppShellProps {
   children: React.ReactNode;
-  activeView?: "chat" | "enterprise" | "credit" | "emi";
+  activeView?: "chat" | "enterprise" | "credit" | "emi" | "cashflow" | "notifications";
   activeChatId?: string | null;
 }
 

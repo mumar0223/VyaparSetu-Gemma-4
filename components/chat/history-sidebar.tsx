@@ -18,6 +18,8 @@ import {
   Building2,
   CreditCard,
   Calculator,
+  Activity,
+  Bell,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -104,6 +106,8 @@ export function HistorySidebar({
     pathname === "/enterprise" || activeView === "enterprise";
   const isCreditActive = pathname === "/credit";
   const isEmiActive = pathname === "/emi";
+  const isCashflowActive = pathname === "/cashflow";
+  const isNotificationsActive = pathname === "/notifications";
 
   const renderContent = (isMobileSheet: boolean = false) => (
     <div className="w-full h-full flex flex-col shrink-0">
@@ -207,6 +211,50 @@ export function HistorySidebar({
               )}
             />
             <span className="truncate">EMI & Loan Simulator (ईएमआई)</span>
+          </Link>
+
+          {/* 4. Cash Flow & Runway Monitor Link */}
+          <Link
+            href="/cashflow"
+            onClick={() => {
+              if (isMobileSheet) onToggle();
+            }}
+            className={cn(
+              "flex items-center gap-2.5 w-full h-9 px-3 rounded-xl text-[12.5px] font-semibold transition-all cursor-pointer border select-none",
+              isCashflowActive
+                ? "bg-forest dark:bg-mint text-white dark:text-black border-transparent font-bold shadow-xs"
+                : "bg-white/70 dark:bg-card/70 hover:bg-cream dark:hover:bg-muted text-forest dark:text-foreground border-sage/30 dark:border-border shadow-2xs",
+            )}
+          >
+            <Activity
+              className={cn(
+                "size-3.5 shrink-0",
+                isCashflowActive ? "text-mint dark:text-black" : "text-mint",
+              )}
+            />
+            <span className="truncate">Cash Flow & Runway (कैश फ्लो)</span>
+          </Link>
+
+          {/* 5. Real-Time Alerts & WhatsApp Dispatches Link */}
+          <Link
+            href="/notifications"
+            onClick={() => {
+              if (isMobileSheet) onToggle();
+            }}
+            className={cn(
+              "flex items-center gap-2.5 w-full h-9 px-3 rounded-xl text-[12.5px] font-semibold transition-all cursor-pointer border select-none",
+              isNotificationsActive
+                ? "bg-forest dark:bg-mint text-white dark:text-black border-transparent font-bold shadow-xs"
+                : "bg-white/70 dark:bg-card/70 hover:bg-cream dark:hover:bg-muted text-forest dark:text-foreground border-sage/30 dark:border-border shadow-2xs",
+            )}
+          >
+            <Bell
+              className={cn(
+                "size-3.5 shrink-0",
+                isNotificationsActive ? "text-mint dark:text-black" : "text-emerald-600 dark:text-emerald-400",
+              )}
+            />
+            <span className="truncate">Alerts & WhatsApp (अलर्ट्स)</span>
           </Link>
         </div>
       </div>

@@ -147,7 +147,7 @@ CRITICAL TASK:
 You MUST invoke the appropriate tool with complete, authentic, professional Indian MSME / banking / trade fields:
 - If stageForm: Build complete, real-world sections matching the user's requested bank or scheme (1. Personal & KYC Details; 2. Enterprise Details; 3. Banking & Loan Requirement with Bank Name, Branch IFSC, Account No, Amount; 4. Statutory Declaration).
 - If getMandiArbitrage or Mandi rates: Call getMandiArbitrage with the commodity and district/state in English.
-- If stageDocument: Use rich GitHub-Flavored Markdown with tables, \`\`\`chart for numerical comparisons, and \`\`\`mermaid for workflow/process diagrams. Never use ASCII progress bars or mermaid xychart.
+- If stageDocument: Use rich GitHub-Flavored Markdown with tables (e.g. Sales Ledger / Udhaar table, Stock Register inventory table, GST Summary slab breakdown, or Rate Sheets), \`\`\`chart for numerical comparisons, and \`\`\`mermaid for workflow/process diagrams. Never use ASCII progress bars or mermaid xychart.
 Execute the tool now.`;
 
     const userParts: any[] = [];

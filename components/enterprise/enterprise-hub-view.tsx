@@ -30,6 +30,7 @@ import {
   ChevronRight,
   Calendar,
   Code2,
+  Package,
 } from "lucide-react";
 import { SerpApiPayloadModal, type SerpApiPayloadData } from "@/components/ui/serpapi-payload-modal";
 import {
@@ -70,6 +71,7 @@ export type EnterpriseTab =
   | "mandi"
   | "competitors"
   | "credit"
+  | "stock"
   | "custom";
 
 export const VALID_ENTERPRISE_TABS: EnterpriseTab[] = [
@@ -79,6 +81,7 @@ export const VALID_ENTERPRISE_TABS: EnterpriseTab[] = [
   "mandi",
   "competitors",
   "credit",
+  "stock",
   "custom",
 ];
 
@@ -243,6 +246,27 @@ ${credit.recommendations && credit.recommendations.length > 0 ? `
 > **Credit Underwriting Advice:**
 ${credit.recommendations.map((r: string) => `> • ${r}`).join("\n")}
 ` : ""}`;
+  }
+
+  if (domain === "stock") {
+    const stockContent =
+      typeof data === "string"
+        ? data
+        : typeof data?.content === "string"
+          ? data.content
+          : typeof data?.markdown === "string"
+            ? data.markdown
+            : undefined;
+
+    if (stockContent && stockContent.trim().length > 0) {
+      return stockContent;
+    }
+
+    return `### 📦 ${title || "Stock & Inventory Register (स्टॉक रजिस्टर)"}
+
+${summary || "Real-time stock valuation, itemized inventory counts, and reorder alerts."}
+
+*No inventory items logged in this record yet.*`;
   }
 
   if (domain === "custom") {
@@ -775,6 +799,22 @@ export function EnterpriseHubView({
             <CreditCard className="size-3.5" />
             <span>💳 Credit &amp; Borrowing</span>
             {isDomainActive("credit") && (
+              <span className="size-1.5 rounded-full bg-mint animate-pulse" />
+            )}
+          </button>
+
+          <button
+            onClick={() => handleTabClick("stock")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer",
+              activeTab === "stock"
+                ? "bg-white dark:bg-muted text-forest dark:text-mint shadow-xs font-bold"
+                : "text-muted-foreground hover:text-foreground hover:bg-white/40 dark:hover:bg-muted/40",
+            )}
+          >
+            <Package className="size-3.5" />
+            <span>📦 Stock &amp; Inventory</span>
+            {isDomainActive("stock") && (
               <span className="size-1.5 rounded-full bg-mint animate-pulse" />
             )}
           </button>
@@ -1318,6 +1358,168 @@ export function EnterpriseHubView({
             )}
           </div>
         )}
+
+        {/* ── TAB 8: STOCK & INVENTORY REGISTER ── */}
+        {activeTab === "stock" && (() => {
+          const activeStockRecord = selectedRecord || (records.length > 0 ? records[0] : null);
+          const stockMd = activeStockRecord ? getOrSynthesizeMarkdown(activeStockRecord) : "";
+          const tableRows = stockMd
+            .split("\n")
+            .filter(
+              (line) =>
+                line.trim().startsWith("|") &&
+                !line.includes("---") &&
+                !line.toLowerCase().includes("product name") &&
+                !line.toLowerCase().includes("item / product"),
+            );
+
+          const totalSkus = tableRows.length;
+          const lowStockCount = tableRows.filter(
+            (line) =>
+              line.toLowerCase().includes("low stock") ||
+              line.includes("⚠️") ||
+              line.includes("🟡") ||
+              line.toLowerCase().includes("reorder soon"),
+          ).length;
+          const criticalCount = tableRows.filter(
+            (line) =>
+              line.toLowerCase().includes("critical") ||
+              line.toLowerCase().includes("out of stock") ||
+              line.includes("🚨") ||
+              line.includes("🔴"),
+          ).length;
+          const optimalCount = Math.max(0, totalSkus - lowStockCount - criticalCount);
+
+          return (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              {/* Dynamic Executive Stock KPI Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="p-5 rounded-3xl bg-white/70 dark:bg-card/70 border border-sage/30 dark:border-border shadow-xs space-y-2">
+                  <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
+                    <span>Total SKUs Tracked</span>
+                    <Package className="size-4 text-mint" />
+                  </div>
+                  <p className="text-2xl font-serif font-bold text-forest dark:text-foreground">
+                    {totalSkus > 0 ? `${totalSkus} Items` : "0 Products"}
+                  </p>
+                  <span className="text-[11px] text-muted-foreground">
+                    {totalSkus > 0 ? "Active catalog inventory" : "No items logged yet"}
+                  </span>
+                </div>
+
+                <div className="p-5 rounded-3xl bg-white/70 dark:bg-card/70 border border-sage/30 dark:border-border shadow-xs space-y-2">
+                  <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
+                    <span>Optimal Stock Level</span>
+                    <CheckCircle2 className="size-4 text-emerald-600" />
+                  </div>
+                  <p className="text-2xl font-serif font-bold text-emerald-600 dark:text-emerald-400">
+                    {optimalCount} Items
+                  </p>
+                  <span className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80">
+                    {totalSkus > 0 ? `${Math.round((optimalCount / totalSkus) * 100)}% healthy replenishment` : "Awaiting inventory log"}
+                  </span>
+                </div>
+
+                <div className="p-5 rounded-3xl bg-white/70 dark:bg-card/70 border border-sage/30 dark:border-border shadow-xs space-y-2">
+                  <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
+                    <span>Low Stock Warning</span>
+                    <AlertTriangle className="size-4 text-orange" />
+                  </div>
+                  <p className="text-2xl font-serif font-bold text-orange">
+                    {lowStockCount} Items Low
+                  </p>
+                  <span className="text-[11px] text-orange/80">
+                    {lowStockCount > 0 ? "Requires procurement reorder" : "No items near depletion"}
+                  </span>
+                </div>
+
+                <div className="p-5 rounded-3xl bg-white/70 dark:bg-card/70 border border-sage/30 dark:border-border shadow-xs space-y-2">
+                  <div className="flex items-center justify-between text-muted-foreground text-xs font-medium">
+                    <span>Critical (Out of Stock)</span>
+                    <Flame className="size-4 text-destructive" />
+                  </div>
+                  <p className="text-2xl font-serif font-bold text-destructive">
+                    {criticalCount} Critical
+                  </p>
+                  <span className="text-[11px] text-destructive/80">
+                    {criticalCount > 0 ? "Immediate replenishment needed" : "Zero depleted stock"}
+                  </span>
+                </div>
+              </div>
+
+              {selectedRecord ? (
+                <div className="space-y-6 animate-in fade-in duration-200">
+                  <SelectedRecordBanner
+                    record={selectedRecord}
+                    onBack={handleBackToList}
+                    onInspectPayload={() => setIsPayloadModalOpen(true)}
+                  />
+                  <div className="p-6 md:p-8 rounded-3xl bg-white/80 dark:bg-card/80 border border-sage/30 dark:border-border shadow-xs backdrop-blur-xs">
+                    <MarkdownMessage content={getOrSynthesizeMarkdown(selectedRecord)} />
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-white/60 dark:bg-card/60 border border-sage/30 dark:border-border">
+                    <div>
+                      <h2 className="text-base font-serif font-bold text-forest dark:text-foreground flex items-center gap-2">
+                        <Package className="size-4 text-mint" />
+                        Stock &amp; Inventory Register
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        {records.length > 0
+                          ? `${records.length} stock register sheet${records.length > 1 ? "s" : ""} saved across conversations`
+                          : "Turn shopkeeper voice or text notes into an itemized stock list with real-time alerts"}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleAsk(`Compile and update my complete stock and inventory register for ${shopName} in ${location} with item quantities, purchase cost, retail prices, and low stock warnings.`)}
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-forest dark:bg-mint text-white dark:text-black text-xs font-bold shadow-xs hover:shadow-md transition-all cursor-pointer"
+                    >
+                      <Package className="size-3.5 text-mint dark:text-black" />
+                      <span>Run Stock Scan via AI</span>
+                    </button>
+                  </div>
+
+                  {records.length > 0 ? (
+                    <EnterpriseRecordCardList
+                      records={records}
+                      activeTab={activeTab}
+                      onSelectRecord={handleSelectRecord}
+                      currentPage={currentPage}
+                      onPageChange={setCurrentPage}
+                      emptyTitle="No Stock Registers Saved Yet"
+                      emptyDesc="Ask the AI in chat to record or update your stock notes to see your live inventory ledger here."
+                      emptyIcon={Package}
+                      onRunScan={() => handleAsk(`Compile and update my complete stock and inventory register for ${shopName} in ${location} with item quantities, purchase cost, retail prices, and low stock warnings.`)}
+                    />
+                  ) : (
+                    <div className="p-8 md:p-12 rounded-3xl bg-white/80 dark:bg-card/80 border border-sage/30 dark:border-border text-center space-y-4 shadow-xs">
+                      <div className="size-12 rounded-2xl bg-mint-pale dark:bg-mint/15 text-forest dark:text-mint flex items-center justify-center mx-auto">
+                        <Package className="size-6 text-mint" />
+                      </div>
+                      <div className="space-y-1.5 max-w-md mx-auto">
+                        <h3 className="font-serif font-bold text-lg text-forest dark:text-foreground">
+                          No Inventory Items Logged Yet
+                        </h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                          Speak or type your inventory notes in chat (e.g. <em>&quot;Added 20 packets of oil at ₹110&quot;</em> or <em>&quot;Sold 5 bags of sugar&quot;</em>) and VyaparSetu will automatically compile and update your live stock register here.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleAsk(`Compile and update my complete stock and inventory register for ${shopName} in ${location} with item quantities, purchase cost, retail prices, and low stock warnings.`)}
+                        className="px-4 py-2.5 rounded-xl bg-forest dark:bg-mint text-white dark:text-black text-xs font-bold shadow-xs hover:shadow-md transition-all cursor-pointer inline-flex items-center gap-2"
+                      >
+                        <Package className="size-4 text-mint dark:text-black" />
+                        <span>Compile Stock Register with AI</span>
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* ── SerpApi Payload Inspection Modal ── */}

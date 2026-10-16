@@ -361,6 +361,46 @@ export function ChatWorkspace({
           markdown: md,
           timestamp: now,
         }).catch(() => {});
+      } else if (toolName === "stageDocument") {
+        const docData = result.data || result;
+        const dType = String(docData.docType || result.docType || "").toLowerCase();
+        const docTitle = String(result.title || docData.title || "").toLowerCase();
+        const docSummary = String(summary || result.summary || docData.summary || "").toLowerCase();
+
+        const isStockDoc =
+          dType === "catalog" ||
+          dType === "stock" ||
+          dType === "stock_register" ||
+          docTitle.includes("stock") ||
+          docTitle.includes("inventory") ||
+          docSummary.includes("stock") ||
+          docSummary.includes("inventory");
+
+        if (isStockDoc) {
+          const md =
+            extractedMarkdown ||
+            docData.content ||
+            (typeof docData === "string" ? docData : undefined);
+          saveEnterpriseIntelligence({
+            stock: docData,
+            summary: summary || result.summary || "Stock & Inventory register",
+            awakenedDomains: ["stock"],
+          }).catch(() => {});
+          saveEnterpriseRecord({
+            id: `${chatId}_stock`,
+            conversationId: chatId,
+            chatTitle,
+            domain: "stock",
+            title: result.title || docData.title || "Stock & Inventory Register",
+            summary:
+              summary ||
+              result.summary ||
+              "Real-time stock counts, cost margins, and reorder alerts",
+            data: docData,
+            markdown: md,
+            timestamp: now,
+          }).catch(() => {});
+        }
       }
     },
     [],
@@ -2135,7 +2175,7 @@ function formatSmartChatTitle(rawText: string): string {
 
               {/* Natural typographic subtitle (No artificial badge, no pulse circle) */}
               <p className="text-xs sm:text-sm font-medium text-forest/80 dark:text-zinc-300 mb-1.5 leading-relaxed">
-                <span>Autonomous Enterprise Intelligence Gemma AI Swarm</span>
+                <span>Autonomous Enterprise Intelligence Swarm</span>
                 <span className="mx-2 text-forest/30 dark:text-zinc-600 font-normal">•</span>
                 <span className="text-forest dark:text-mint font-semibold">
                   Powered by SerpApi Real-Time Grounding

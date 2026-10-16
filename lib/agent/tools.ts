@@ -521,7 +521,7 @@ export const StageDocumentSchema = z
     docType: z
       .string()
       .default("catalog")
-      .describe("Document category (catalog, table, report, guide, agreement, invoice, other)"),
+      .describe("Document category (ledger, catalog, report, invoice, gst_summary, stock_register, table, guide, agreement, other)"),
     summary: z
       .string()
       .optional()
@@ -1814,7 +1814,7 @@ ${cards.map((c) => `**${c.title}**: ${c.whyInThisDistrict}\n- *Subsidy:* ${(c.ma
 
     stageDocument: tool({
       description:
-        "Generates or updates a rich, structured Markdown document artifact modal (e.g. Price Catalogs, APMC Wholesale Rate Sheets, Scheme Comparison Matrices, Official Agreements, Invoices, Checklists, Policies) with formatted GFM tables, bold figures, and domain colors. Use 'targetArtifactId' to update an open document in place.",
+        "Generates or updates a rich, structured Markdown document artifact modal (e.g. Sales Ledger / Udhaar Khata, Stock & Inventory Register, GST-Ready Summary Report, Price Catalogs, APMC Wholesale Rate Sheets, Scheme Comparison Matrices, Official Agreements, Invoices, Checklists, Policies) with formatted GFM tables, bold figures, and domain colors. Use 'targetArtifactId' to update an open document in place.",
       inputSchema: StageDocumentSchema,
       execute: async ({
         targetArtifactId,

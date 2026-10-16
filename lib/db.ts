@@ -87,6 +87,7 @@ export interface EnterpriseIntelligence {
     maxRecommendedLoan: string;
     recommendations: string[];
   };
+  stock?: any;
   updatedAt: number;
 }
 
@@ -94,7 +95,7 @@ export interface EnterpriseRecord {
   id: string; // `${conversationId}_${domain}`
   conversationId: string;
   chatTitle: string;
-  domain: "swot" | "schemes" | "mandi" | "competitors" | "credit" | "custom";
+  domain: "swot" | "schemes" | "mandi" | "competitors" | "credit" | "stock" | "custom";
   title: string;
   summary: string;
   data: any;
