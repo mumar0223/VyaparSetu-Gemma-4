@@ -1,3 +1,5 @@
+                                                         HACKTOBERFEST X IUL 2026
+
 # 🌉 VyaparSetu (व्यापार सेतु)
 ### *Bridging Indian Grassroots Commerce with Google Gemma 4*
 
